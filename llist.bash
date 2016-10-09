@@ -81,7 +81,7 @@ Llist ()
                 builtin unset -f \
                         __.{addNode{After,Head},removeNode{After,Head},cleanup,usage} \
                         Llist.{append,index,insert,length,range,replace} \
-                        Llist.{set,traverse,unset;
+                        Llist.{set,traverse,unset};
         }
 
         function __.removeNodeAfter {

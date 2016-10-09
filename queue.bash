@@ -127,28 +127,4 @@ Queue ()
         fi
 }
 
-Queue set A
-
-printf '%s\n' "${A[@]}"
-
-for i in {1..10}
-do
-        Queue pushr A $i
-done
-
-for i in {1..10}
-do
-        Queue popl A
-done
-Queue popl A
-
-echo ${A[first]} ${A[last]}
-
-Queue pushr A "::"
-Queue pushr A __
-Queue popl A
-Queue popl A
-Queue popl A
-echo ${A[first]} ${A[last]}
-
 # vim: set ts=8 sw=8 tw=0 et :
