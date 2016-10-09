@@ -4,7 +4,7 @@ All scripts use a trap on RETURN, out of laziness.
 
 The double linked list gets an controlling associative array variable with the keys lname[type], lname[nodes] and lname[id.] Any node of the list will also get its own associative array variable with the following keys: `lname_$((lname[id] + 1))=([prev]= [next]= [data]=)`. Further, any list has an second index array variable lname_idx, which indexes all nodes in the right order.
 
-Of course, lname_idx isn't necessary. But iterating over the list is still slower. This "implemantation" is a good example, how slow things are getting done in Bash in general.
+Of course, lname_idx isn't necessary. But iterating over the list is still slower. This "implementation" is a good example, how slow things are getting done in Bash in general.
 
 ```
 set         lname [element ...]
