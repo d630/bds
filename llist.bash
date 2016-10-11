@@ -3,14 +3,15 @@
 Llist ()
 {
         builtin local -
-        # builtin set -o pipefail
-        # builtin set -o errexit
+        # # builtin set -o pipefail
+        # # builtin set -o errexit
         builtin set -o errtrace
-        # builtin set -o nounset
+        # # builtin set -o nounset
 
         builtin trap '
+                status=$?
                 builtin trap -- - RETURN;
-                status=$? __.cleanup
+                s=$status __.cleanup
         ' RETURN;
 
         function __.addNodeAfter {
@@ -78,10 +79,13 @@ Llist ()
         }
 
         function __.cleanup {
+                builtin unset -v status
                 builtin unset -f \
                         __.{addNode{After,Head},removeNode{After,Head},cleanup,usage} \
                         Llist.{append,index,insert,length,range,replace} \
                         Llist.{set,traverse,unset};
+
+                builtin return $s
         }
 
         function __.removeNodeAfter {
@@ -322,7 +326,7 @@ Llist ()
                 while
                         [[ -v node[$link] ]]
                 do
-                        builtin printf '%s[data] := %q\n' "${!node}" "${node[data]}"
+                        builtin printf '%s[data]=%q\n' "${!node}" "${node[data]}"
                         builtin declare -n node=${node[$link]}
                 done
         }

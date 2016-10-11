@@ -9,9 +9,12 @@ Queue ()
         # builtin set -o nounset
 
         builtin trap '
+                status=$?
                 builtin trap -- - RETURN;
-                status=$? __.cleanup
+                s=$status __.cleanup
         ' RETURN;
+
+
 
         function Queue.set {
                 if
@@ -110,21 +113,31 @@ Queue ()
         }
 
         function __.cleanup {
+                builtin unset -v status
                 builtin unset -f \
-                        Queue.{pop{l,r},push{l,r},new} \
+                        Queue.{pop{l,r},push{l,r},set} \
                         __.{cleanup};
 
-                builtin return "${status:-0}"
+                builtin return $s
         }
 
-        if
-                (($#))
-        then
-                "${FUNCNAME}.${1}" "${@:2}"
-        else
-                builtin printf '%s: need an operation\n' "$FUNCNAME" 1>&2;
+        case $# in
+        [01])
+                builtin printf '%s: need an operation and a queue name\n' "$FUNCNAME" 1>&2;
                 builtin return 1
-        fi
+        ;;
+        *)
+                if
+                        [[ $1 == set || -v ${2}[type] ]]
+                then
+                        "${FUNCNAME}.${1}" "${@:2}"
+                else
+                        builtin printf '%s: '%s' is not a queue\n' \
+                                "$FUNCNAME" \
+                                "$2" 1>&2;
+                        builtin return 1
+                fi
+        esac
 }
 
 # vim: set ts=8 sw=8 tw=0 et :
