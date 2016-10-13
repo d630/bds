@@ -14,8 +14,6 @@ Queue ()
                 s=$status __.cleanup
         ' RETURN;
 
-
-
         function Queue.set {
                 if
                         (($#))
@@ -123,7 +121,8 @@ Queue ()
 
         case $# in
         [01])
-                builtin printf '%s: need an operation and a queue name\n' "$FUNCNAME" 1>&2;
+                builtin printf '%s: need an operation and a queue name\n' \
+                        "$FUNCNAME" 1>&2;
                 builtin return 1
         ;;
         *)

@@ -3,10 +3,10 @@
 Llist ()
 {
         builtin local -
-        # # builtin set -o pipefail
-        # # builtin set -o errexit
+        # builtin set -o pipefail
+        # builtin set -o errexit
         builtin set -o errtrace
-        # # builtin set -o nounset
+        # builtin set -o nounset
 
         builtin trap '
                 status=$?
@@ -81,7 +81,8 @@ Llist ()
         function __.cleanup {
                 builtin unset -v status
                 builtin unset -f \
-                        __.{addNode{After,Head},removeNode{After,Head},cleanup,usage} \
+                        __.{addNode{After,Head},removeNode{After,Head}} \
+                        __.{cleanup,usage} \
                         Llist.{append,index,insert,length,range,replace} \
                         Llist.{set,traverse,unset};
 
@@ -143,7 +144,8 @@ Llist ()
                         [unset]=''
                 )"
 
-                builtin printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" "${u[$1]}" 1>&2;
+                builtin printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" \
+                        "${u[$1]}" 1>&2;
         }
 
         function Llist.append {
@@ -254,6 +256,7 @@ Llist ()
                         first=$1 \
                         last=$2;
                 builtin shift 2
+
                 case $first in
                 0|-[0-9]*)
                         case $last in
@@ -265,17 +268,29 @@ Llist ()
                         ;;
                         *)
                                 builtin declare e
-                                for ((e = last > ${#nodes[@]} ? ${#nodes[@]} : last; e >= 0; e--))
+                                ((
+                                        e =
+                                        last - ${#nodes[@]} >= 0
+                                        ? ${#nodes[@]} - 1
+                                        : last
+                                ))
+                                for ((; e > -1; e--))
                                 do
                                         __.removeNodeHead || builtin return 1;
                                 done
                         esac
                 ;;
                 *)
-                        ((first > ${#nodes[@]})) && return 1;
+                        ((first >= ${#nodes[@]})) && builtin return 1;
+                        ((
+                                last=
+                                first + last >= ${#nodes[@]}
+                                ? 0
+                                : last
+                        ))
                         case $last in
                         -[0-9]*)
-                                :
+                                builtin :
                         ;;
                         0)
                                 __.removeNodeAfter "$((first - 1))" || \
@@ -283,10 +298,9 @@ Llist ()
                         ;;
                         *)
                                 builtin declare e f
-                                for ((e = last > ${#nodes[@]} ? ${#nodes[@]} : last, f=first-1; e >= f ; e--))
+                                for ((e=last, f=first-1; e >= f; e--))
                                 do
-                                        __.removeNodeAfter \
-                                                "$((first - 1 + e))" || \
+                                        __.removeNodeAfter "$((f + e))" || \
                                                 builtin return 1;
                                 done
                         esac
@@ -319,7 +333,8 @@ Llist ()
                 if
                         ! builtin declare -n node=${nodes[$1]} 2>/dev/null;
                 then
-                        builtin printf '%s: index does not exist\n' "$FUNCNAME" 1>&2;
+                        builtin printf '%s: index does not exist\n' \
+                                "$FUNCNAME" 1>&2;
                         builtin return 1
                 fi
 
