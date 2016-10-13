@@ -285,7 +285,7 @@ Llist ()
                         ((
                                 last=
                                 first + last >= ${#nodes[@]}
-                                ? 0
+                                ? ${#nodes[@]} - 1 - first
                                 : last
                         ))
                         case $last in
@@ -298,9 +298,9 @@ Llist ()
                         ;;
                         *)
                                 builtin declare e f
-                                for ((e=last, f=first-1; e >= f; e--))
+                                for ((e=last, f=first-1; e > -1; e--))
                                 do
-                                        __.removeNodeAfter "$((f + e))" || \
+                                        __.removeNodeAfter "$f" || \
                                                 builtin return 1;
                                 done
                         esac
