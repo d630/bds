@@ -8,7 +8,7 @@ The double linked list gets a controlling associative array variable with the ke
 set         lname [element ...]
 unset       lname
 
-linsert     lname index [element ...]
+insert      lname index [element ...]
 append      lname [element ...]
 replace     lname first last [element ...]
 
