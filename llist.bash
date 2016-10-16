@@ -22,11 +22,12 @@ Llist ()
 
                 builtin declare name="${!list}_$((${list[id]} + 1))"
                 builtin declare -g -A "${name}=()"
-                builtin declare -n newNode=${name}
+                builtin declare -n \
+                        newNode=${name} \
+                        node=${nodes[$index]};
+
                 newNode[data]=$*
                 list[id]=$((${list[id]} + 1))
-
-                builtin declare -n node=${nodes[$index]}
                 newNode[next]=${node[next]}
                 newNode[prev]=${!node}
                 node[next]=$name
@@ -94,8 +95,9 @@ Llist ()
 
                 builtin declare -i index=$1
 
-                builtin declare -n prevNode=${nodes[$index]}
-                builtin declare -n node=${nodes[$index + 1]}
+                builtin declare -n \
+                        node=${nodes[$index + 1]} \
+                        prevNode=${nodes[$index]};
 
                 if
                         ! [[ ${node[next]} == NULL ]]
@@ -104,9 +106,10 @@ Llist ()
                         nextNode[prev]=${node[prev]}
                 fi
                 prevNode[next]=${node[next]}
-                builtin unset -v "${!node}"
+                builtin unset -v \
+                        "${!node}" \
+                        "nodes[$index + 1]";
 
-                builtin unset -v "nodes[$index + 1]"
                 nodes=("${nodes[@]}")
         }
 
@@ -124,8 +127,9 @@ Llist ()
                 *)
                         builtin declare -n nextNode=${nodes[1]}
                         nextNode[prev]=NULL
-                        builtin unset -v "${nodes[0]}"
-                        builtin unset -v "nodes[0]"
+                        builtin unset -v \
+                                "${nodes[0]}" \
+                                "nodes[0]";
                         nodes=("${nodes[@]}")
                 esac
         }
@@ -196,11 +200,18 @@ Llist ()
         function Llist.length {
                 case ${1#-} in
                 t)
-                        builtin declare -a "t=()"
-                        builtin mapfile -t t < <(
-                                Llist.traverse 0
-                        )
-                        builtin printf '%d\n' "${#t[@]}"
+                        Llist.traverse 0 \
+                        | {
+                                # builtin declare -i i=
+                                # while
+                                #         read -r
+                                # do
+                                #         ((i++))
+                                # done
+                                # builtin printf '%d\n' "${i}";
+                                builtin mapfile -t;
+                                builtin printf '%d\n' "${#MAPFILE[@]}";
+                        };
                 ;;
                 *)
                         builtin printf '%d\n' "${#nodes[@]}"
@@ -310,8 +321,9 @@ Llist ()
         }
 
         function Llist.set {
-                builtin declare -n list=$1
-                builtin declare -n nodes=${1}_idx
+                builtin declare -n \
+                        list=$1 \
+                        nodes=${1}_idx;
 
                 Llist.unset
 
@@ -394,8 +406,9 @@ Llist ()
                 if
                         [[ -v ${1}[type] ]]
                 then
-                        builtin declare -n list=$1
-                        builtin declare -n nodes=${1}_idx
+                        builtin declare -n \
+                                list=$1 \
+                                nodes=${1}_idx;
                 else
                         builtin printf '%s: %s is not a list\n' \
                                 "$FUNCNAME" \
