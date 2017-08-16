@@ -2,141 +2,109 @@
 
 Queue ()
 {
-        builtin local -
-        # builtin set -o pipefail
-        # builtin set -o errexit
-        builtin set -o errtrace
-        # builtin set -o nounset
+	(($# < 2)) && {
+		printf '%s: need an operation and a queue name\n' "$FUNCNAME" 1>&2;
+		return 1;
+	};
 
-        builtin trap '
-                status=$?
-                builtin trap -- - RETURN;
-                s=$status __.cleanup
-        ' RETURN;
+	[[ $1 == set || -v ${2}[type] ]] || {
+		printf '%s: %s is not a queue\n' "$FUNCNAME" "$2" 1>&2;
+		return 1;
+	};
 
-        function Queue.set {
-                if
-                        (($#))
-                then
-                        builtin declare name=$1
-                        builtin unset -v "$name"
-                else
-                        builtin printf '%s: need a name\n' "$FUNCNAME" 1>&2;
-                        builtin return 1
-                fi
+	trap '
+		status=$?;
+		trap -- - RETURN;
+		s=$status \__.cleanup;
+	' RETURN;
 
-                builtin declare -g -A "${name}=(
-                        [type]=queue
-                        [first]=0
-                        [last]=-1
-                )"
-        }
+	function Queue.set {
+		(($#)) || {
+			printf '%s: need a name\n' "$FUNCNAME" 1>&2;
+			return 1;
+		};
 
-        function Queue.popl {
-                if
-                        (($#))
-                then
-                        builtin declare -n queue=$1
-                        builtin declare -i first=queue[first]
-                else
-                        builtin printf '%s: need a name\n' "$FUNCNAME" 1>&2;
-                        builtin return 1
-                fi
+		unset -v "$1";
 
-                if
-                        ((queue[last] < first))
-                then
-                        builtin printf '%s\n' "queue is empty" 1>&2;
-                        builtin return 1
-                else
-                        builtin declare value=${queue[$first]}
-                        builtin unset -v "queue[$first]"
-                        ((queue[first] = first + 1))
-                fi
+		declare -g -A "$1=(
+			[type]=queue
+			[first]=0
+			[last]=-1
+		)";
+	};
 
-                builtin printf '%s\n' "$value"
-        }
+	function Queue.popl {
+		(($#)) || {
+			printf '%s: need a name\n' "$FUNCNAME" 1>&2;
+			return 1;
+		};
 
-        function Queue.popr {
-                if
-                        (($#))
-                then
-                        builtin declare -n queue=$1
-                        builtin declare -i last=queue[last]
-                else
-                        builtin printf '%s: need a name\n' "$FUNCNAME" 1>&2;
-                        builtin return 1
-                fi
+		declare -n queue=$1;
+		declare -i first=queue[first];
 
-                if
-                        ((queue[first] > last))
-                then
-                        builtin printf '%s\n' "queue is empty" 1>&2;
-                        builtin return 1
-                else
-                        builtin declare value=${queue[$last]}
-                        builtin unset -v "queue[$last]"
-                        ((queue[last] = last - 1))
-                fi
+		((queue[last] < first)) && {
+			printf 'queue is empty\n' 1>&2;
+			return 1;
+		};
 
-                builtin printf '%s\n' "$value"
-        }
+		printf '%s\n' "${queue[$first]}";
+		unset -v "queue[$first]";
+		((queue[first] = first + 1));
+	};
 
-        function Queue.pushl {
-                if
-                        (($#))
-                then
-                        builtin declare -n queue=$1
-                        builtin declare -i first="queue[first] - 1"
-                        queue[first]=$first
-                        queue[$first]=${@:2}
-                else
-                        builtin printf '%s: need a name\n' "$FUNCNAME" 1>&2;
-                        builtin return 1
-                fi
-        }
+	function Queue.popr {
+		(($#)) || {
+			printf '%s: need a name\n' "$FUNCNAME" 1>&2;
+			return 1;
+		};
 
-        function Queue.pushr {
-                if
-                        (($#))
-                then
-                        builtin declare -n queue=$1
-                        builtin declare -i last="queue[last] + 1"
-                        queue[last]=$last
-                        queue[$last]=${@:2}
-                else
-                        builtin printf '%s: need a name\n' "$FUNCNAME" 1>&2;
-                        builtin return 1
-                fi
-        }
+		declare -n queue=$1;
+		declare -i last=queue[last];
 
-        function __.cleanup {
-                builtin unset -v status
-                builtin unset -f \
-                        Queue.{pop{l,r},push{l,r},set} \
-                        __.{cleanup};
+		((queue[first] > last)) && {
+			printf 'queue is empty\n' 1>&2;
+			return 1;
+		};
 
-                builtin return $s
-        }
+		printf '%s\n' "${queue[$last]}";
+		unset -v "queue[$last]";
+		((queue[last] = last - 1));
+	};
 
-        case $# in
-        [01])
-                builtin printf '%s: need an operation and a queue name\n' \
-                        "$FUNCNAME" 1>&2;
-                builtin return 1
-        ;;
-        *)
-                if
-                        [[ $1 == set || -v ${2}[type] ]]
-                then
-                        "${FUNCNAME}.${1}" "${@:2}"
-                else
-                        builtin printf '%s: '%s' is not a queue\n' \
-                                "$FUNCNAME" \
-                                "$2" 1>&2;
-                        builtin return 1
-                fi
-        esac
-}
+	function Queue.pushl {
+		(($#)) || {
+			printf '%s: need a name\n' "$FUNCNAME" 1>&2;
+			return 1;
+		};
 
-# vim: set ts=8 sw=8 tw=0 et :
+		declare -n queue=$1;
+		declare -i first='queue[first] - 1';
+		queue[first]=$first;
+		queue[$first]=${@:2};
+	};
+
+	function Queue.pushr {
+		(($#)) || {
+			printf '%s: need a name\n' "$FUNCNAME" 1>&2;
+			return 1;
+		};
+
+		declare -n queue=$1;
+		declare -i last='queue[last] + 1';
+		queue[last]=$last;
+		queue[$last]=${@:2};
+	};
+
+	function __.cleanup {
+		unset -v status;
+		unset -f \
+			Queue.{pop{l,r},push{l,r},set} \
+			__.{cleanup};
+
+		return $s;
+	};
+
+	"$FUNCNAME.$1" "${@:2}";
+};
+
+# vim: set ts=4 sw=4 tw=0 noet :
