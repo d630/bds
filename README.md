@@ -7,7 +7,7 @@ keys `lname[type]`, `lname[nodes]` and `lname[id]` AND a second index array
 variable `lname_idx`, which indexes all nodes in the right order. (Of course,
 `lname_idx` isn't necessary. But iterating over the list is still slower.)
 
-Any node of the list will get its own associative array variable with the
+Each node of the list will get its own associative array variable with the
 following keys: `lname_$((lname[id] + 1))=([prev]= [next]= [data]=)`.
 
 ```
@@ -28,8 +28,8 @@ traverse    lname [-r] index
 
 ##### Queue
 
-One associative array variable will be used. Its keys are `qname[type]`,
-`qname[first]` and `qname[last]`. In the case of pushing many elements to the
+One associative array variable is used. Its keys are `qname[type]`,
+`qname[first]` and `qname[last]`. In case of pushing many elements to the
 queue, an additional indexed array variable `qname_idx` would be a good idea.
 
 ```

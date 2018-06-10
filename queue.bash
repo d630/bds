@@ -107,4 +107,4 @@ Queue ()
 	"$FUNCNAME.$1" "${@:2}";
 };
 
-# vim: set ts=4 sw=4 tw=0 noet :
+# vim: set ft=sh :
