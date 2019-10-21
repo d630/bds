@@ -28,14 +28,14 @@ traverse    lname [-r] index
 
 ##### Queue
 
-One associative array variable is used. Its keys are `qname[type]`,
+One associative array variable is being used. Its keys are `qname[type]`,
 `qname[first]` and `qname[last]`. In case of pushing many elements to the
-queue, an additional indexed array variable `qname_idx` would be a good idea.
+queue, an additional indexed array variable `qname_idx` would be an good idea.
 
 ```
 set         qname
 pushl       qname [element]
 pushr       qname [element]
-popl        qname [element]
-popr        qname [element]
+popl        qname
+popr        qname
 ```
