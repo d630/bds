@@ -1,6 +1,6 @@
 Each script sets a trap on RETURN.
 
-##### Llist
+#### Llist
 
 The double linked list gets a controlling associative array variable with the
 keys `lname[type]`, `lname[nodes]` and `lname[id]` AND a second index array
@@ -26,11 +26,26 @@ length      lname [-t]
 traverse    lname [-r] index
 ```
 
-##### Queue
+#### Queue
+
+##### normal
 
 One associative array variable is being used. Its keys are `qname[type]`,
-`qname[first]` and `qname[last]`. In case of pushing many elements to the
-queue, an additional indexed array variable `qname_idx` would be an good idea.
+`qname[first]` and `qname[last]`.
+
+```
+set         qname
+pushl       qname [element]
+pushr       qname [element]
+popl        qname
+popr        qname
+```
+
+##### ext
+
+One associative array variable + two indexed array variables for head and tail
+are being used. Keys are `qname[type]`, `qname[head]`, `qname[tail]`, and
+`qname[head_first]`, `qname[tail_first]`
 
 ```
 set         qname

@@ -51,7 +51,7 @@ Queue ()
 			return 1;
 		};
 
-		echo '%s\n' "${queue[$last]}";
+		echo "${queue[$last]}";
 		unset -v "queue[$last]";
 		queue[last]=$((last - 1));
 	};
