@@ -5,8 +5,8 @@ Queue ()
 	: "${1:?$FUNCNAME: need an operation and a queue name}" \
 		"${2:?$FUNCNAME: need a queue name}";
 
-	[[ $1 == set || -v ${2}[type] ]] || {
-		printf '%s: %s is not a queue\n' "$FUNCNAME" "$2" 1>&2;
+	[[ $1 == set ]] || eval [[ '"${'"$2[type]"'}"' = queue ]] || {
+		printf '%s: <%s> is not a queue\n' "$FUNCNAME" "$2" 1>&2;
 		return 1;
 	};
 

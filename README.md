@@ -16,6 +16,7 @@ unset       lname
 
 insert      lname index [element ...]
 append      lname [element ...]
+prepend     lname [element ...]
 replace     lname first last [element ...]
 
 index       lname [index]

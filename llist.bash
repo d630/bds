@@ -1,99 +1,168 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bsh
 
 Llist ()
 {
-	trap '
-		status=$?;
-		trap -- - RETURN;
-		s=$status __.cleanup;
-	' RETURN;
+	trap '\Llist.__cleanup "$?"' RETURN;
 
-	function __.addNodeAfter {
-		# USAGE: __.addNodeAfter INDEX [ELEMENT]
+	function Llist.__addHeadNode {
+		# USAGE: Llist.__addHeadNode [ELEMENT]
 
-		declare -i index=$1;
-		shift 1;
+		declare newNodeName;
+		declare -i newNodeId;
+		declare -n newNode;
 
-		declare name="${!list}_$((${list[id]} + 1))";
-		declare -g -A "$name=()";
-		declare -n \
-			newNode=$name \
-			node=${nodes[$index]};
+		newNodeId="${list[id]} + 1";
+		newNodeName="${!list}_$newNodeId";
+		list[id]=$newNodeId;
 
+		declare -g -A "$newNodeName=([prev]=NULL)";
+		newNode=$newNodeName;
 		newNode[data]=$*;
-		list[id]=$((${list[id]} + 1));
-		newNode[next]=${node[next]};
-		newNode[prev]=${!node};
-		node[next]=$name;
-
-		if
-			((${#nodes[@]} == index + 1));
-		then
-			nodes+=("$name");
-		else
-			nodes=(
-				"${nodes[@]:0:index+1}"
-				"$name"
-				"${nodes[@]:index+1}"
-			);
-			# declare i ii
-			# declare -a t
-			# t=("${nodes[@]}")
-			# for ((i=0, ii=index+1; i < ii; i++))
-			# do
-			#         unset -v "t[$i]"
-			# done
-			# for ((i=index+1, ii=${#nodes[@]}; i <= ii; i++))
-			# do
-			#         unset -v "nodes[$i]"
-			# done
-			# nodes+=("$name" "${t[@]}")
-		fi;
-	}
-
-	function __.addNodeHead {
-		# USAGE: __.addNodeHead [ELEMENT]
-
-		declare name="${!list}_$((${list[id]} + 1))";
-		declare -g -A "$name=([prev]=NULL)";
-		declare -n newNode=$name;
-		newNode[data]=$*;
-		list[id]=$((${list[id]} + 1));
 
 		if
 			((${#nodes[@]}));
 		then
+			declare -n nextNode;
+			nextNode=${nodes[0]};
+			nextNode[prev]=$newNodeName;
 			newNode[next]=${nodes[0]};
-			declare -n node=${nodes[0]};
-			node[prev]=$name;
-			nodes=("$name" "${nodes[@]}");
+			nodes=("$newNodeName" "${nodes[@]}");
 		else
 			newNode[next]=NULL;
-			nodes[0]=$name;
+			nodes[0]=$newNodeName;
 		fi;
 	}
 
-	function __.cleanup {
-		unset -v status;
-		unset -f \
-			__.{addNode{After,Head},removeNode{After,Head}} \
-			__.{cleanup,usage} \
-			Llist.{append,index,insert,length,range,replace} \
-			Llist.{set,traverse,unset};
+	function Llist.__addTailNode {
+		# USAGE: Llist.__addTailNode INDEX [ELEMENT]
 
-		return $s;
+		declare newNodeName;
+		declare -i newNodeId;
+		declare -n newNode;
+
+		newNodeId="${list[id]} + 1";
+		newNodeName="${!list}_$newNodeId";
+		list[id]=$newNodeId;
+
+		declare -g -A "$newNodeName=([next]=NULL)";
+		newNode=$newNodeName;
+		newNode[data]=$*;
+
+		if
+			((${#nodes[@]}));
+		then
+			declare -n prevNode;
+			prevNode=${nodes[-1]};
+			prevNode[next]=$newNodeName;
+			newNode[prev]=${nodes[-1]};
+			nodes+=("$newNodeName");
+		else
+			newNode[prev]=NULL;
+			nodes[0]=$newNodeName;
+		fi;
+	}
+
+	function Llist.__addMiddleNode {
+		# USAGE: Llist.__addMiddleNode INDEX [ELEMENT]
+
+		declare -i index;
+		index=$1;
+
+		shift 1;
+
+		declare newNodeName;
+		declare -i newNodeId;
+		declare -n \
+			newNode \
+			nextNode \
+			prevNode;
+
+		prevNode=${nodes[index - 1]};
+		nextNode=${nodes[index]}
+
+		newNodeId="${list[id]} + 1";
+		newNodeName="${!list}_$newNodeId";
+		declare -g -A "$newNodeName=()";
+		newNode=$newNodeName;
+
+		list[id]=$newNodeId;
+		newNode[data]=$*;
+		newNode[next]=${!nextNode};
+		newNode[prev]=${!prevNode};
+		prevNode[next]=$newNodeName;
+		nextNode[prev]=$newNodeName;
+
+		nodes=(
+			"${nodes[@]:0:index}"
+			"$nameNodeName"
+			"${nodes[@]:index}"
+		);
+
+		nodes[index]=$newNodeName;
+	}
+
+	function Llist.__cleanup {
+		trap -- - RETURN;
+		unset -f \
+			Llist.__{{add,remove}{Head,Middle,Tail}Node,usage,print} \
+			Llist.{append,index,insert,length,prepend,range,replace} \
+			Llist.{set,traverse,unset} \
+			"$FUNCNAME";
+
+		return "$1";
 	};
 
-	function __.removeNodeAfter {
-		# USAGE: __.removeNodeAfter INDEX
+	function Llist.__print {
+		# USAGE: Llist.__print INDEX
 
-		declare -i index=$1;
+		declare -n node;
+		node=${nodes[$1]};
+
+		if
+			[[ -v node[data] ]];
+		then
+			printf '%s ' "${node[data]@Q}";
+		else
+			printf '%s: list <%s> has a damaged node (data missing): %s\n' \
+				"$FUNCNAME" "${!list}" "${!node}" 1>&2;
+			return 1;
+		fi;
+	}
+
+	function Llist.__removeHeadNode {
+		# USAGE: Llist.__removeHeadNode
+
+		case ${#nodes[@]} in
+		(0)
+			return 1;;
+		(1)
+			unset -v "${nodes[0]}";
+			nodes=();;
+		(*)
+			declare -n nextNode;
+			nextNode=${nodes[1]};
+			nextNode[prev]=NULL;
+			unset -v \
+				"${nodes[0]}" \
+				"nodes[0]";
+			nodes=("${nodes[@]}");;
+		esac;
+	}
+
+	function Llist.__removeTailNode {
+		# USAGE: Llist.__removeTailNode INDEX
+
+		declare -i index;
 		declare -n \
-			node=${nodes[$index + 1]} \
-			prevNode=${nodes[$index]};
+			node \
+			prevNode;
+		index=$1;
+		node=${nodes[index + 1]};
+		prevNode=${nodes[index]};
 
 		[[ ${node[next]} == NULL ]] || {
-			declare -n nextNode=${node[next]};
+			declare -n nextNode;
+			nextNode=${node[next]};
 			nextNode[prev]=${node[prev]};
 		};
 		prevNode[next]=${node[next]};
@@ -104,31 +173,13 @@ Llist ()
 		nodes=("${nodes[@]}");
 	}
 
-	function __.removeNodeHead {
-		# USAGE: __.removeNodeHead
-
-		case ${#nodes[@]} in
-		(0)
-			return 1;;
-		(1)
-			unset -v "${nodes[0]}";
-			nodes=();;
-		(*)
-			declare -n nextNode=${nodes[1]};
-			nextNode[prev]=NULL;
-			unset -v \
-				"${nodes[0]}" \
-				"nodes[0]";
-			nodes=("${nodes[@]}");;
-		esac;
-	}
-
-	function __.usage {
+	function Llist.__usage {
 		declare -A "u=(
 			[append]='[element ...]'
 			[index]='[index]'
 			[insert]='index [element ...]'
 			[length]='[-t]'
+			[prepend]='[element ...]'
 			[range]='[-r] first last'
 			[replace]='first last [element ...]'
 			[set]='[element ...]'
@@ -136,66 +187,104 @@ Llist ()
 			[unset]=''
 		)";
 
-		printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" "${u[$1]}" 1>&2;
+		if
+			[[ -v u[$1] ]];
+		then
+			printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" "${u[$1]}" 1>&2;
+		else
+			declare k;
+			for k in "${!u[@]}";
+			do
+				printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$k" "${u[$k]}";
+			done |
+				command sort 1>&2;
+		fi;
 	};
 
 	function Llist.append {
-		Llist.insert "${#nodes[@]}" "$@";
+		\Llist.insert "$1" -1 "${@:2}";
 	}
 
 	function Llist.index {
+		declare -n \
+			list \
+			nodes;
+
+		list=$1;
+		nodes=$1_idx;
+
 		if
-			(($#));
+			(($# == 2));
 		then
-			declare -i index=$1;
+			declare -i index;
+			printf -v index '%d' "$2" 2>/dev/null || {
+				printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
+				return 1;
+			}
 			if
-				[[ -v ${nodes[$index]}[data] ]] 2>/dev/null;
+				[[ -v nodes[index] ]];
 			then
-				declare -n node=${nodes[$index]};
-				printf '%s\n' "${node[data]@Q}";
+				\Llist.__print "$index" ||
+					return 1;
+				echo;
 			else
 				return 1;
 			fi;
 		else
-			Llist.range 0 ${#nodes[@]};
+			\Llist.range "$1" 0 "${#nodes[@]}";
 		fi;
 	}
 
 	function Llist.insert {
-		declare -i index=$1;
-		shift 1;
+		declare -n \
+			list \
+			nodes;
+		declare -i index;
 
+		list=$1;
+		nodes=$1_idx;
+		printf -v index '%d' "$2" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
+			return 1;
+		}
+
+		shift 2;
+
+		((
+			index > ${#nodes[@]} ? index=${#nodes[@]} : 1,
+			${#nodes[@]} == 0 && index != 0 ? index=0 : 1
+		))
+
+		declare e;
 		case $index in
-		(0|-[0-9]*)
-			declare e;
-			for ((e=$#; e > 0; e--));
-			do
-				__.addNodeHead "${@:e:1}" ||
-					return 1;
-			done;;
-		(*)
-			((index > ${#nodes[@]})) &&
-				return 1;
-			declare e i;
-			for ((e=$#, i=index-1; e > 0; e--));
-			do
-				__.addNodeAfter "$i" "${@:e:1}" ||
-					return 1;
-			done;;
+			(0)
+				for ((e=$#; e > 0; e--));
+				do
+					\Llist.__addHeadNode "${@:e:1}" ||
+						return 1;
+				done;;
+			(-[0-9]*|${#nodes[@]})
+				for e in "$@";
+				do
+					\Llist.__addTailNode "$e" ||
+						return 1;
+				done;;
+			(*)
+				for ((e=$#; e > 0; e--));
+				do
+					\Llist.__addMiddleNode "$index" "${@:e:1}" ||
+						return 1;
+				done;;
 		esac;
 	}
 
 	function Llist.length {
-		case ${1#-} in
+		declare -n nodes;
+		nodes=$1_idx;
+
+		case ${2#-} in
 		(t)
-			Llist.traverse 0 | {
-				# declare -i i=
-				# while
-				#         read -r
-				# do
-				#         ((i++))
-				# done
-				# printf '%d\n' "${i}";
+			\Llist.traverse "$1" 0 | {
 				mapfile -t;
 				printf '%d\n' "${#MAPFILE[@]}";
 			};;
@@ -204,15 +293,31 @@ Llist ()
 		esac;
 	}
 
-	function Llist.range {
-		declare -i rev=0;
+	function Llist.prepend {
+		\Llist.insert "$1" 0 "${@:2}";
+	}
 
-		[[ $1 == -r ]] &&
-			declare rev=1 &&
-			shift 1;
+	function Llist.range {
+		declare -n \
+			list \
+			nodes;
 		declare -i \
-			first=$1 \
-			last=$2;
+			first \
+			last \
+			rev;
+
+		list=$1;
+		nodes=$1_idx;
+		shift 1;
+		[[ $1 == -r ]] && rev=1 && shift 1;
+		printf -v first '%d' "$1" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
+			return 1;
+		}
+		printf -v last '%d' "$2" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
+			return 1;
+		}
 
 		((
 			first = first < 0 ? 0 : first,
@@ -226,29 +331,45 @@ Llist ()
 		((first > last)) &&
 			return 1;
 
-		declare n;
+		declare -i n;
 		if
 			((rev));
 		then
 			for ((n=last; n >= first; n--));
 			do
-				declare -n node=${nodes[$n]} &&
-					printf '%s ' "${node[data]@Q}";
+				\Llist.__print "$n" ||
+					return 1;
 			done;
 		else
 			for ((n=first; n <= last; n++));
 			do
-				declare -n node=${nodes[$n]} &&
-					printf '%s ' "${node[data]@Q}";
+				\Llist.__print "$n" ||
+					return 1;
 			done;
 		fi;
-		printf '%s\n';
+		echo;
 	}
 
 	function Llist.replace {
+		declare -n \
+			list \
+			nodes;
 		declare -i \
-			first=$1 \
-			last=$2;
+			first \
+			last;
+
+		list=$1;
+		nodes=$1_idx;
+		shift 1;
+
+		printf -v first '%d' "$1" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
+			return 1;
+		}
+		printf -v last '%d' "$2" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
+			return 1;
+		}
 		shift 2;
 
 		case $first in
@@ -257,7 +378,7 @@ Llist ()
 			(-[0-9]*)
 				first=0;;
 			(0)
-				__.removeNodeHead ||
+				\Llist.__removeHeadNode ||
 					return 1;;
 			(*)
 				declare e;
@@ -269,7 +390,7 @@ Llist ()
 				));
 				for ((; e > -1; e--));
 				do
-					__.removeNodeHead ||
+					\Llist.__removeHeadNode ||
 						return 1;
 				done;;
 			esac;;
@@ -286,109 +407,124 @@ Llist ()
 			(-[0-9]*)
 				:;;
 			(0)
-				__.removeNodeAfter "$((first - 1))" ||
+				\Llist.__removeTailNode "$((first - 1))" ||
 					return 1;;
 			(*)
 				declare e f;
 				for ((e=last, f=first-1; e > -1; e--));
 				do
-					__.removeNodeAfter "$f" ||
+					\Llist.__removeTailNode "$f" ||
 						return 1;
 				done;;
 			esac;;
 		esac;
 
-		Llist.insert "$first" "$@";
+		\Llist.insert "${!list}" "$first" "$@";
 	}
 
 	function Llist.set {
-		declare -n \
-			list=$1 \
-			nodes=$1_idx;
+		\Llist.unset "$1";
 
-		Llist.unset;
-
-		declare -g -A "${!list}=(
+		declare -g -a "${1}_idx=()";
+		declare -g -A "$1=(
 			[type]=llist
-			[nodes]='${!list}_idx'
+			[nodes]=${1}_idx
 			[id]=-1
 		)";
-		declare -g -a "${!nodes}=()";
 
-		shift 1;
-		Llist.insert 0 "$@";
+		\Llist.insert "$1" 0 "${@:2}";
 	}
 
 	function Llist.traverse {
-		declare link=next;
-		[[ $1 == -r ]] &&
-			link=prev &&
-			shift 1;
+		declare -n  \
+			node \
+			nodes;
+		declare link;
+		declare -i index;
 
-		declare -n node=${nodes[$1]} 2>/dev/null || {
-			printf '%s: index does not exist\n' "$FUNCNAME" 1>&2;
+		nodes=$1_idx;
+		link=next;
+		shift 1;
+
+		[[ $1 == -r ]] && link=prev && shift 1;
+
+		printf -v index '%d' "$1" 2>/dev/null || {
+			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
 			return 1;
-		};
+		}
 
+		if
+			[[ -v nodes[index] ]];
+		then
+			node=${nodes[index]};
+		else
+			printf '%s: index does not exist: %d\n' "$FUNCNAME" "$index" 1>&2;
+			return 1;
+		fi;
+
+		unset -v NULL;
 		while
 			[[ -v node[$link] ]];
 		do
 			printf '%s[data]=%q\n' "${!node}" "${node[data]}";
-			declare -n node=${node[$link]};
+			declare -n "node=${node[$link]}";
 		done;
 	}
 
 	function Llist.unset {
+		declare -n \
+			list \
+			nodes;
+
+		list=$1;
+		nodes=$1_idx;
+
+		((${#list[@]})) ||
+			return 0;
+
 		unset -v "${!list}";
 
-		declare -i n;
-		((${#nodes[@]})) && {
-			for ((n=${#nodes[@]}-1; n > -1; n--));
-			do
-				unset -v "${nodes[$n]}";
-			done;
-		};
+		declare n;
+		for n in "${nodes[@]}";
+		do
+			unset -v "$n";
+		done;
+
+		unset -v "${!nodes}";
 	}
 
-	declare op=$1;
-	shift 1 2>/dev/null;
+	declare op;
+	op=${1:?$FUNCNAME: need an operation};
+
+	shift 1;
 
 	declare -i a;
 	case $op in
-	(append) a="$# >= 1";;
-	(index) a="$# >= 1";;
-	(insert) a="$# >= 2";;
-	(length) a="$# >= 1";;
-	(range) a="$# >= 3";;
-	(replace) a="$# >= 3";;
-	(traverse) a="$# >= 2";;
-	(unset) a="$# == 1";;
-	(set)
-		(($#)) && {
-			"$FUNCNAME.$op" "$@";
-			return $?;
-		};
-		a=0;;
-	(*)
-		printf '%s: need an operation\n' "$FUNCNAME" 1>&2;
-		return 1;;
+		(append) a="$# >= 1";;
+		(index) a="$# >= 1";;
+		(insert) a="$# >= 2";;
+		(length) a="$# >= 1";;
+		(prepend) a="$# >= 1";;
+		(range) a="$# >= 3";;
+		(replace) a="$# >= 3";;
+		(set) a="$# >= 1";;
+		(traverse) a="$# >= 2";;
+		(unset) a="$# == 1";;
+		(*)
+			printf '%s: unknown operation: %s\n' "$FUNCNAME" "$op" 1>&2;
 	esac;
 
 	((a)) || {
-		__.usage "$op";
+		\Llist.__usage "$op";
 		return 1;
 	};
 
-	[[ -v ${1}[type] ]] || {
-		printf '%s: %s is not a list\n' "$FUNCNAME" "$1" 1>&2;
+	[[ $op == set ]] || eval [[ '"${'"$1[type]"'}"' == llist ]] || {
+		printf '%s: <%s> is not a list\n' "$FUNCNAME" "$1" 1>&2;
 		return 1;
 	};
 
-	declare -n \
-		list=$1 \
-		nodes=${1}_idx;
-
-	"$FUNCNAME.$op" "${@:2}";
+	"$FUNCNAME.$op" "$@";
 };
 
 # vim: set ft=sh :

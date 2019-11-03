@@ -5,15 +5,18 @@ Queue ()
 	: "${1:?$FUNCNAME: need an operation and a queue name}" \
 		"${2:?$FUNCNAME: need a queue name}";
 
-	[[ $1 == set || -v ${2}[type] ]] || {
-		printf '%s: %s is not a queue\n' "$FUNCNAME" "$2" 1>&2;
+	[[ $1 == set ]] || eval [[ '"${'"$2[type]"'}"' == queue_ext ]] || {
+		printf '%s: <%s> is not a queue\n' "$FUNCNAME" "$2" 1>&2;
 		return 1;
 	};
 
 	trap '\Queue.__cleanup "$?";' RETURN;
 
 	function Queue.set {
-		unset -v "$1";
+		unset -v \
+			"$1" \
+			"${1}_head" \
+			"${1}_tail";
 
 		declare -g -a \
 			"${1}_head=()" \
