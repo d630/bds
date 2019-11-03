@@ -31,7 +31,7 @@ Llist ()
 			newNode[next]=NULL;
 			nodes[0]=$newNodeName;
 		fi;
-	}
+	};
 
 	function Llist.__addTailNode {
 		# USAGE: Llist.__addTailNode INDEX [ELEMENT]
@@ -60,7 +60,7 @@ Llist ()
 			newNode[prev]=NULL;
 			nodes[0]=$newNodeName;
 		fi;
-	}
+	};
 
 	function Llist.__addMiddleNode {
 		# USAGE: Llist.__addMiddleNode INDEX [ELEMENT]
@@ -99,7 +99,7 @@ Llist ()
 		);
 
 		nodes[index]=$newNodeName;
-	}
+	};
 
 	function Llist.__cleanup {
 		trap -- - RETURN;
@@ -127,27 +127,27 @@ Llist ()
 				"$FUNCNAME" "${!list}" "${!node}" 1>&2;
 			return 1;
 		fi;
-	}
+	};
 
 	function Llist.__removeHeadNode {
 		# USAGE: Llist.__removeHeadNode
 
 		case ${#nodes[@]} in
-		(0)
-			return 1;;
-		(1)
-			unset -v "${nodes[0]}";
-			nodes=();;
-		(*)
-			declare -n nextNode;
-			nextNode=${nodes[1]};
-			nextNode[prev]=NULL;
-			unset -v \
-				"${nodes[0]}" \
-				"nodes[0]";
-			nodes=("${nodes[@]}");;
+			(0)
+				return 1;;
+			(1)
+				unset -v "${nodes[0]}";
+				nodes=();;
+			(*)
+				declare -n nextNode;
+				nextNode=${nodes[1]};
+				nextNode[prev]=NULL;
+				unset -v \
+					"${nodes[0]}" \
+					"nodes[0]";
+				nodes=("${nodes[@]}");;
 		esac;
-	}
+	};
 
 	function Llist.__removeTailNode {
 		# USAGE: Llist.__removeTailNode INDEX
@@ -171,7 +171,7 @@ Llist ()
 			"nodes[$index + 1]";
 
 		nodes=("${nodes[@]}");
-	}
+	};
 
 	function Llist.__usage {
 		declare -A "u=(
@@ -190,20 +190,20 @@ Llist ()
 		if
 			[[ -v u[$1] ]];
 		then
-			printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" "${u[$1]}" 1>&2;
+			printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$1" "${u[$1]}";
 		else
 			declare k;
 			for k in "${!u[@]}";
 			do
 				printf 'usage: %s %s lname %s\n' "${FUNCNAME[1]}" "$k" "${u[$k]}";
 			done |
-				command sort 1>&2;
-		fi;
+				command sort;
+		fi 1>&2;
 	};
 
 	function Llist.append {
 		\Llist.insert "$1" -1 "${@:2}";
-	}
+	};
 
 	function Llist.index {
 		declare -n \
@@ -220,7 +220,7 @@ Llist ()
 			printf -v index '%d' "$2" 2>/dev/null || {
 				printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
 				return 1;
-			}
+			};
 			if
 				[[ -v nodes[index] ]];
 			then
@@ -233,7 +233,7 @@ Llist ()
 		else
 			\Llist.range "$1" 0 "${#nodes[@]}";
 		fi;
-	}
+	};
 
 	function Llist.insert {
 		declare -n \
@@ -246,7 +246,7 @@ Llist ()
 		printf -v index '%d' "$2" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
 			return 1;
-		}
+		};
 
 		shift 2;
 
@@ -276,7 +276,7 @@ Llist ()
 						return 1;
 				done;;
 		esac;
-	}
+	};
 
 	function Llist.length {
 		declare -n nodes;
@@ -291,11 +291,11 @@ Llist ()
 		(*)
 			printf '%d\n' "${#nodes[@]}";;
 		esac;
-	}
+	};
 
 	function Llist.prepend {
 		\Llist.insert "$1" 0 "${@:2}";
-	}
+	};
 
 	function Llist.range {
 		declare -n \
@@ -313,11 +313,11 @@ Llist ()
 		printf -v first '%d' "$1" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
 			return 1;
-		}
+		};
 		printf -v last '%d' "$2" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
 			return 1;
-		}
+		};
 
 		((
 			first = first < 0 ? 0 : first,
@@ -348,7 +348,7 @@ Llist ()
 			done;
 		fi;
 		echo;
-	}
+	};
 
 	function Llist.replace {
 		declare -n \
@@ -365,62 +365,62 @@ Llist ()
 		printf -v first '%d' "$1" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
 			return 1;
-		}
+		};
 		printf -v last '%d' "$2" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$2" 1>&2;
 			return 1;
-		}
+		};
 		shift 2;
 
 		case $first in
-		(0|-[0-9]*)
-			case $last in
-			(-[0-9]*)
-				first=0;;
-			(0)
-				\Llist.__removeHeadNode ||
-					return 1;;
+			(0|-[0-9]*)
+				case $last in
+					(-[0-9]*)
+						first=0;;
+					(0)
+						\Llist.__removeHeadNode ||
+							return 1;;
+					(*)
+						declare e;
+						((
+							e =
+							last - ${#nodes[@]} >= 0
+							? ${#nodes[@]} - 1
+							: last
+						));
+						for ((; e > -1; e--));
+						do
+							\Llist.__removeHeadNode ||
+								return 1;
+						done;;
+				esac;;
 			(*)
-				declare e;
+				((first >= ${#nodes[@]})) &&
+					return 1;
 				((
-					e =
-					last - ${#nodes[@]} >= 0
-					? ${#nodes[@]} - 1
+					last=
+					first + last >= ${#nodes[@]}
+					? ${#nodes[@]} - 1 - first
 					: last
 				));
-				for ((; e > -1; e--));
-				do
-					\Llist.__removeHeadNode ||
-						return 1;
-				done;;
-			esac;;
-		(*)
-			((first >= ${#nodes[@]})) &&
-				return 1;
-			((
-				last=
-				first + last >= ${#nodes[@]}
-				? ${#nodes[@]} - 1 - first
-				: last
-			));
-			case $last in
-			(-[0-9]*)
-				:;;
-			(0)
-				\Llist.__removeTailNode "$((first - 1))" ||
-					return 1;;
-			(*)
-				declare e f;
-				for ((e=last, f=first-1; e > -1; e--));
-				do
-					\Llist.__removeTailNode "$f" ||
-						return 1;
-				done;;
-			esac;;
+				case $last in
+					(-[0-9]*)
+						:;;
+					(0)
+						\Llist.__removeTailNode "$((first - 1))" ||
+							return 1;;
+					(*)
+						declare e f;
+						for ((e=last, f=first-1; e > -1; e--));
+						do
+							\Llist.__removeTailNode "$f" ||
+								return 1;
+						done;;
+				esac;;
 		esac;
 
 		\Llist.insert "${!list}" "$first" "$@";
-	}
+	};
 
 	function Llist.set {
 		\Llist.unset "$1";
@@ -433,7 +433,7 @@ Llist ()
 		)";
 
 		\Llist.insert "$1" 0 "${@:2}";
-	}
+	};
 
 	function Llist.traverse {
 		declare -n  \
@@ -451,7 +451,7 @@ Llist ()
 		printf -v index '%d' "$1" 2>/dev/null || {
 			printf '%s: invalid number: %s\n' "$FUNCNAME" "$1" 1>&2;
 			return 1;
-		}
+		};
 
 		if
 			[[ -v nodes[index] ]];
@@ -469,7 +469,7 @@ Llist ()
 			printf '%s[data]=%q\n' "${!node}" "${node[data]}";
 			declare -n "node=${node[$link]}";
 		done;
-	}
+	};
 
 	function Llist.unset {
 		declare -n \
@@ -491,7 +491,7 @@ Llist ()
 		done;
 
 		unset -v "${!nodes}";
-	}
+	};
 
 	declare op;
 	op=${1:?$FUNCNAME: need an operation};
